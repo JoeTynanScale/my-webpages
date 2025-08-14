@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PowerApps Management Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+        
+        /* Header */
+        .dashboard-header {
+            background: linear-gradient(135deg, #0078d4, #106ebe);
+            color: white;
+            padding: 20px 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .app-title {
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .app-subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-top: 4px;
+        }
+        
+        .header-stats {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 20px;
+            font-weight: 700;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        /* Main Content */
+        .dashboard-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 30px;
+            min-height: calc(100vh - 120px);
+        }
+        
+        /* Filter Panel */
+        .filter-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+        }
+        
+        .filter-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #323130;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .filter-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #605e5c;
+            margin-bottom: 6px;
+        }
+        
+        .filter-input, .filter-select {
+            padding: 12px;
+            border: 2px solid #e1e1e1;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .filter-input:focus, .filter-select:focus {
+            outline: none;
+            border-color: #0078d4;
+        }
+        
+        .clear-filters {
+            background: #f3f2f1;
+            border: 1px solid #c8c6c4;
+            color: #605e5c;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: auto;
+            transition: all 0.3s ease;
+        }
+        
+        .clear-filters:hover {
+            background: #edebe9;
+        }
+        
+        /* Table Container */
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        
+        .table-header {
+            background: #f8f9fa;
+            padding: 20px 25px;
+            border-bottom: 1px solid #e1e1e1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .table-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #323130;
+        }
+        
+        .results-count {
+            font-size: 14px;
+            color: #605e5c;
+        }
+        
+        /* Data Table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .data-table th {
+            background: #faf9f8;
+            padding: 15px 12px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 600;
+            color: #323130;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #e1e1e1;
+        }
+        
+        .data-table td {
+            padding: 15px 12px;
+            font-size: 14px;
+            border-bottom: 1px solid #f3f2f1;
+            color: #323130;
+        }
+        
+        .data-table tr {
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        
+        .data-table tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .data-table tr.selected {
+            background-color: #e7f3ff;
+            border-left: 4px solid #0078d4;
+        }
+        
+        /* Status Indicators */
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        
+        .status-working {
+            background: #dff6dd;
+            color: #107c10;
+        }
+        
+        .status-fault {
+            background: #fed9cc;
+            color: #d13438;
+        }
+        
+        .fault-text {
+            font-size: 13px;
+            color: #d13438;
+            font-style: italic;
+        }
+        
+        .coordinates {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #605e5c;
+        }
+        
+        /* Image Preview Panel */
+        .image-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 30px;
+            height: fit-content;
+        }
+        
+        .image-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #323130;
+            margin-bottom: 15px;
+        }
+        
+        .image-placeholder {
+            width: 100%;
+            height: 200px;
+            background: #f8f9fa;
+            border: 2px dashed #c8c6c4;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #a19f9d;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        
+        .image-preview {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .image-details {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #605e5c;
+            line-height: 1.4;
+        }
+        
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        
+        .detail-label {
+            font-weight: 500;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .dashboard-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .image-panel {
+                position: static;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard-content {
+                padding: 20px;
+            }
+            
+            .filter-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .data-table {
+                font-size: 12px;
+            }
+            
+            .data-table th,
+            .data-table td {
+                padding: 10px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="dashboard-header">
+        <div class="header-content">
+            <div>
+                <div class="app-title">Fault Tracking Management</div>
+                <div class="app-subtitle">Screen Inspection History & Analytics</div>
+            </div>
+            <div class="header-stats">
+                <div class="stat-item">
+                    <div class="stat-number">1,247</div>
+                    <div class="stat-label">Total Inspections</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">23</div>
+                    <div class="stat-label">Active Faults</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">98.2%</div>
+                    <div class="stat-label">Uptime</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="dashboard-content">
+        <div class="main-content">
+            <!-- Filter Panel -->
+            <div class="filter-panel">
+                <div class="filter-title">
+                    🔍 Filter Inspections
+                    <button class="clear-filters" onclick="clearFilters()">Clear All</button>
+                </div>
+                <div class="filter-grid">
+                    <div class="filter-group">
+                        <label class="filter-label">Date Range</label>
+                        <input type="date" class="filter-input" id="startDate" value="2024-08-01">
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">To</label>
+                        <input type="date" class="filter-input" id="endDate" value="2024-08-14">
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Asset</label>
+                        <select class="filter-select" id="assetFilter">
+                            <option value="">All Assets</option>
+                            <option value="A">Asset A</option>
+                            <option value="B">Asset B</option>
+                            <option value="C">Asset C</option>
+                            <option value="D">Asset D</option>
+                            <option value="E">Asset E</option>
+                            <option value="F">Asset F</option>
+                            <option value="G">Asset G</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Screen</label>
+                        <select class="filter-select" id="screenFilter">
+                            <option value="">All Screens</option>
+                            <option value="1">Screen 1</option>
+                            <option value="2">Screen 2</option>
+                            <option value="3">Screen 3</option>
+                            <option value="4">Screen 4</option>
+                            <option value="5">Screen 5</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table Container -->
+            <div class="table-container">
+                <div class="table-header">
+                    <div class="table-title">Inspection History</div>
+                    <div class="results-count">Showing <span id="resultCount">24</span> results</div>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Asset</th>
+                            <th>Screen</th>
+                            <th>Date & Time</th>
+                            <th>Location</th>
+                            <th>Inspector</th>
+                            <th>Status</th>
+                            <th>Fault Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr onclick="selectRow(this, 'screen_a1_001.jpg', 'Asset A', 'Screen 1', '2024-08-14 09:15', 'John Smith', 'Working', null)">
+                            <td><strong>Asset A</strong></td>
+                            <td>Screen 1</td>
+                            <td>Aug 14, 2024 09:15 AM</td>
+                            <td class="coordinates">11.5564° N<br>104.9282° E</td>
+                            <td>John Smith</td>
+                            <td><span class="status-badge status-working">Working</span></td>
+                            <td>-</td>
+                        </tr>
+                        <tr onclick="selectRow(this, 'screen_b3_002.jpg', 'Asset B', 'Screen 3', '2024-08-14 08:45', 'Sarah Johnson', 'Fault', 'Flickering display, color distortion in lower right quadrant')">
+                            <td><strong>Asset B</strong></td>
+                            <td>Screen 3</td>
+                            <td>Aug 14, 2024 08:45 AM</td>
+                            <td class="coordinates">11.5542° N<br>104.9298° E</td>
+                            <td>Sarah Johnson</td>
+                            <td><span class="status-badge status-fault">Fault</span></td>
+                            <td><span class="fault-text">Flickering display</span></td>
+                        </tr>
+                        <tr onclick="selectRow(this, 'screen_a5_003.jpg', 'Asset A', 'Screen 5', '2024-08-14 08:30', 'Mike Chen', 'Working', null)">
+                            <td><strong>Asset A</strong></td>
+                            <td>Screen 5</td>
+                            <td>Aug 14, 2024 08:30 AM</td>
+                            <td class="coordinates">11.5568° N<br>104.9275° E</td>
+                            <td>Mike Chen</td>
+                            <td><span class="status-badge status-working">Working</span></td>
+                            <td>-</td>
+                        </tr>
+                        <tr onclick="selectRow(this, 'screen_c7_004.jpg', 'Asset C', 'Screen 7', '2024-08-13 16:22', 'Lisa Wang', 'Fault', 'Complete black screen, no power indicator light')">
+                            <td><strong>Asset C</strong></td>
+                            <td>Screen 7</td>
+                            <td>Aug 13, 2024 04:22 PM</td>
+                            <td class="coordinates">11.5581° N<br>104.9251° E</td>
+                            <td>Lisa Wang</td>
+                            <td><span class="status-badge status-fault">Fault</span></td>
+                            <td><span class="fault-text">No power</span></td>
+                        </tr>
+                        <tr onclick="selectRow(this, 'screen_d2_005.jpg', 'Asset D', 'Screen 2', '2024-08-13 15:15', 'Tom Rodriguez', 'Working', null)">
+                            <td><strong>Asset D</strong></td>
+                            <td>Screen 2</td>
+                            <td>Aug 13, 2024 03:15 PM</td>
+                            <td class="coordinates">11.5559° N<br>104.9289° E</td>
+                            <td>Tom Rodriguez</td>
+                            <td><span class="status-badge status-working">Working</span></td>
+                            <td>-</td>
+                        </tr>
+                        <tr onclick="selectRow(this, 'screen_f1_006.jpg', 'Asset F', 'Screen 1', '2024-08-13 14:45', 'Amy Thompson', 'Fault', 'Cracked screen in upper left corner, display still functional')">
+                            <td><strong>Asset F</strong></td>
+                            <td>Screen 1</td>
+                            <td>Aug 13, 2024 02:45 PM</td>
+                            <td class="coordinates">11.5573° N<br>104.9263° E</td>
+                            <td>Amy Thompson</td>
+                            <td><span class="status-badge status-fault">Fault</span></td>
+                            <td><span class="fault-text">Cracked screen</span></td>
+                        </tr>
+                        <tr onclick="selectRow(this, 'screen_e4_007.jpg', 'Asset E', 'Screen 4', '2024-08-13 13:20', 'David Kim', 'Working', null)">
+                            <td><strong>Asset E</strong></td>
+                            <td>Screen 4</td>
+                            <td>Aug 13, 2024 01:20 PM</td>
+                            <td class="coordinates">11.5577° N<br>104.9272° E</td>
+                            <td>David Kim</td>
+                            <td><span class="status-badge status-working">Working</span></td>
+                            <td>-</td>
+                        </tr>
+                        <tr onclick="selectRow(this, 'screen_g8_008.jpg', 'Asset G', 'Screen 8', '2024-08-13 12:30', 'Rachel Green', 'Working', null)">
+                            <td><strong>Asset G</strong></td>
+                            <td>Screen 8</td>
+                            <td>Aug 13, 2024 12:30 PM</td>
+                            <td class="coordinates">11.5585° N<br>104.9244° E</td>
+                            <td>Rachel Green</td>
+                            <td><span class="status-badge status-working">Working</span></td>
+                            <td>-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Image Preview Panel -->
+        <div class="image-panel">
+            <div class="image-title">📷 Inspection Photo</div>
+            <div class="image-placeholder" id="imagePlaceholder">
+                Select a row to view inspection photo
+            </div>
+            <div class="image-details" id="imageDetails" style="display: none;">
+                <div class="detail-row">
+                    <span class="detail-label">Asset:</span>
+                    <span id="detailAsset">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Screen:</span>
+                    <span id="detailScreen">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Date:</span>
+                    <span id="detailDate">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Inspector:</span>
+                    <span id="detailInspector">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Status:</span>
+                    <span id="detailStatus">-</span>
+                </div>
+                <div style="margin-top: 15px;" id="faultContainer" style="display: none;">
+                    <div class="detail-label" style="margin-bottom: 8px;">Fault Description:</div>
+                    <div id="detailFault" style="font-style: italic; color: #d13438;"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function selectRow(row, imageSrc, asset, screen, datetime, inspector, status, fault) {
+            // Remove previous selection
+            document.querySelectorAll('.data-table tr').forEach(tr => {
+                tr.classList.remove('selected');
+            });
+            
+            // Select current row
+            row.classList.add('selected');
+            
+            // Update image panel
+            const placeholder = document.getElementById('imagePlaceholder');
+            const details = document.getElementById('imageDetails');
+            const faultContainer = document.getElementById('faultContainer');
+            
+            // Create or update image
+            let img = document.querySelector('.image-preview');
+            if (!img) {
+                img = document.createElement('img');
+                img.className = 'image-preview';
+                placeholder.parentNode.insertBefore(img, placeholder);
+            }
+            
+            // Set placeholder image (you would replace this with actual image URLs)
+            img.src = `https://via.placeholder.com/300x200/f0f0f0/666666?text=${asset}+${screen}`;
+            img.alt = `${asset} ${screen} inspection photo`;
+            placeholder.style.display = 'none';
+            
+            // Update details
+            document.getElementById('detailAsset').textContent = asset;
+            document.getElementById('detailScreen').textContent = screen;
+            document.getElementById('detailDate').textContent = datetime;
+            document.getElementById('detailInspector').textContent = inspector;
+            document.getElementById('detailStatus').textContent = status;
+            
+            if (fault) {
+                document.getElementById('detailFault').textContent = fault;
+                faultContainer.style.display = 'block';
+            } else {
+                faultContainer.style.display = 'none';
+            }
+            
+            details.style.display = 'block';
+        }
+        
+        function clearFilters() {
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            document.getElementById('assetFilter').value = '';
+            document.getElementById('screenFilter').value = '';
+        }
+        
+        // Add filter functionality
+        function applyFilters() {
+            // This would contain the actual filtering logic
+            // For demo purposes, we'll just update the result count
+            const rows = document.querySelectorAll('#tableBody tr');
+            let visibleRows = 0;
+            
+            rows.forEach(row => {
+                // Simple demo filtering logic would go here
+                row.style.display = '';
+                visibleRows++;
+            });
+            
+            document.getElementById('resultCount').textContent = visibleRows;
+        }
+        
+        // Add event listeners for filters
+        document.getElementById('startDate').addEventListener('change', applyFilters);
+        document.getElementById('endDate').addEventListener('change', applyFilters);
+        document.getElementById('assetFilter').addEventListener('change', applyFilters);
+        document.getElementById('screenFilter').addEventListener('change', applyFilters);
+    </script>
+</body>
+</html>

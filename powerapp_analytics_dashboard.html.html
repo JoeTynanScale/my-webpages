@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PowerApps Compact Analytics Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        /* Header */
+        .dashboard-header {
+            background: linear-gradient(135deg, #0078d4, #106ebe);
+            color: white;
+            padding: 15px 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .app-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .app-subtitle {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-top: 2px;
+        }
+        
+        .header-filters {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .filter-select {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        
+        .filter-select option {
+            background: #0078d4;
+            color: white;
+        }
+        
+        /* Main Dashboard */
+        .dashboard-content {
+            height: calc(100vh - 70px);
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .chart-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            position: relative;
+        }
+        
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #323130;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .chart-subtitle {
+            font-size: 11px;
+            color: #605e5c;
+            font-weight: 400;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: calc(100% - 50px);
+        }
+        
+        /* Asset Performance Bar Chart */
+        .asset-performance {
+            grid-row: span 2;
+        }
+        
+        /* Line Charts */
+        .uptime-trend {
+            grid-column: 2;
+        }
+        
+        .fault-trend {
+            grid-column: 2;
+        }
+        
+        /* KPI Panel */
+        .kpi-panel {
+            grid-row: span 2;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .kpi-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            text-align: center;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .kpi-card.target-met {
+            border-left: 4px solid #107c10;
+        }
+        
+        .kpi-card.target-missed {
+            border-left: 4px solid #d13438;
+        }
+        
+        .kpi-title {
+            font-size: 12px;
+            font-weight: 500;
+            color: #605e5c;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .kpi-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #323130;
+            margin-bottom: 6px;
+        }
+        
+        .kpi-target {
+            font-size: 11px;
+            color: #605e5c;
+        }
+        
+        .kpi-trend {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 16px;
+        }
+        
+        .trend-up {
+            color: #107c10;
+        }
+        
+        .trend-down {
+            color: #d13438;
+        }
+        
+        /* Target indicator */
+        .target-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+        
+        .target-met-indicator {
+            background: #dff6dd;
+            color: #107c10;
+        }
+        
+        .target-missed-indicator {
+            background: #fed9cc;
+            color: #d13438;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 1400px) {
+            .dashboard-content {
+                grid-template-columns: 300px 1fr 250px;
+            }
+        }
+        
+        @media (max-width: 1200px) {
+            .dashboard-content {
+                grid-template-columns: 1fr 2fr;
+                grid-template-rows: auto auto auto;
+            }
+            
+            .asset-performance {
+                grid-row: span 1;
+            }
+            
+            .kpi-panel {
+                grid-row: span 1;
+                grid-column: span 2;
+                flex-direction: row;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="dashboard-header">
+        <div>
+            <div class="app-title">Monthly Performance Dashboard</div>
+            <div class="app-subtitle">Screen Health Analytics - August 2024</div>
+        </div>
+        <div class="header-filters">
+            <select class="filter-select" id="assetFilter" onchange="updateCharts()">
+                <option value="">All Assets</option>
+                <option value="A">Asset A</option>
+                <option value="B">Asset B</option>
+                <option value="C">Asset C</option>
+                <option value="D">Asset D</option>
+                <option value="E">Asset E</option>
+                <option value="F">Asset F</option>
+                <option value="G">Asset G</option>
+            </select>
+            <select class="filter-select" id="monthFilter" onchange="updateCharts()">
+                <option value="2024-08">August 2024</option>
+                <option value="2024-07">July 2024</option>
+                <option value="2024-06">June 2024</option>
+            </select>
+        </div>
+    </header>
+
+    <main class="dashboard-content">
+        <!-- Asset Performance Bar Chart -->
+        <div class="chart-card asset-performance">
+            <div class="chart-title">
+                Asset Uptime Performance
+                <span class="chart-subtitle">Target: 98%</span>
+            </div>
+            <div class="chart-container">
+                <canvas id="assetChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Average Uptime Line Chart -->
+        <div class="chart-card uptime-trend">
+            <div class="chart-title">
+                Daily Average Uptime
+                <span class="chart-subtitle">Last 30 days</span>
+            </div>
+            <div class="chart-container">
+                <canvas id="uptimeChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Faults by Day Line Chart -->
+        <div class="chart-card fault-trend">
+            <div class="chart-title">
+                Daily Fault Count
+                <span class="chart-subtitle">New faults reported</span>
+            </div>
+            <div class="chart-container">
+                <canvas id="faultChart"></canvas>
+            </div>
+        </div>
+
+        <!-- KPI Panel -->
+        <div class="kpi-panel">
+            <div class="kpi-card target-met">
+                <div class="target-indicator target-met-indicator">✓ TARGET MET</div>
+                <div class="kpi-trend trend-up">📈</div>
+                <div class="kpi-title">Overall Uptime</div>
+                <div class="kpi-value">98.7%</div>
+                <div class="kpi-target">+0.7% above target</div>
+            </div>
+            
+            <div class="kpi-card target-missed">
+                <div class="target-indicator target-missed-indicator">✗ BELOW TARGET</div>
+                <div class="kpi-trend trend-down">📉</div>
+                <div class="kpi-title">Worst Performer</div>
+                <div class="kpi-value">96.2%</div>
+                <div class="kpi-target">Asset B (-1.8%)</div>
+            </div>
+            
+            <div class="kpi-card target-met">
+                <div class="kpi-trend trend-up">📈</div>
+                <div class="kpi-title">Active Faults</div>
+                <div class="kpi-value">8</div>
+                <div class="kpi-target">-33% vs last month</div>
+            </div>
+            
+            <div class="kpi-card target-met">
+                <div class="kpi-trend trend-up">📈</div>
+                <div class="kpi-title">Total Inspections</div>
+                <div class="kpi-value">1,247</div>
+                <div class="kpi-target">+8.3% vs last month</div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let assetChart, uptimeChart, faultChart;
+
+        // Initialize Charts
+        function initCharts() {
+            // Asset Performance Bar Chart
+            const assetCtx = document.getElementById('assetChart').getContext('2d');
+            assetChart = new Chart(assetCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Asset A', 'Asset B', 'Asset C', 'Asset D', 'Asset E', 'Asset F', 'Asset G'],
+                    datasets: [{
+                        label: 'Uptime %',
+                        data: [99.1, 96.2, 98.8, 99.3, 98.5, 97.1, 99.0],
+                        backgroundColor: function(context) {
+                            const value = context.parsed.y;
+                            return value >= 98 ? '#107c10' : value >= 97 ? '#f7630c' : '#d13438';
+                        },
+                        borderColor: function(context) {
+                            const value = context.parsed.y;
+                            return value >= 98 ? '#0b5a0b' : value >= 97 ? '#d85200' : '#a02d2d';
+                        },
+                        borderWidth: 2,
+                        borderRadius: 6,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 95,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: [{
+                        id: 'targetLine',
+                        beforeDraw: function(chart) {
+                            const ctx = chart.ctx;
+                            const chartArea = chart.chartArea;
+                            const yScale = chart.scales.y;
+                            const targetY = yScale.getPixelForValue(98);
+                            
+                            ctx.save();
+                            ctx.strokeStyle = '#d13438';
+                            ctx.lineWidth = 2;
+                            ctx.setLineDash([5, 5]);
+                            ctx.beginPath();
+                            ctx.moveTo(chartArea.left, targetY);
+                            ctx.lineTo(chartArea.right, targetY);
+                            ctx.stroke();
+                            
+                            ctx.fillStyle = '#d13438';
+                            ctx.font = '12px Segoe UI';
+                            ctx.fillText('Target: 98%', chartArea.right - 80, targetY - 5);
+                            ctx.restore();
+                        }
+                    }]
+                }
+            });
+
+            // Average Uptime Line Chart
+            const uptimeCtx = document.getElementById('uptimeChart').getContext('2d');
+            uptimeChart = new Chart(uptimeCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Aug 1', 'Aug 5', 'Aug 9', 'Aug 13', 'Aug 17', 'Aug 21', 'Aug 25', 'Aug 29'],
+                    datasets: [{
+                        label: 'Average Uptime %',
+                        data: [99.2, 97.8, 98.8, 98.7, 99.3, 97.5, 99.0, 98.7],
+                        borderColor: '#0078d4',
+                        backgroundColor: 'rgba(0, 120, 212, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: function(context) {
+                            return context.parsed.y >= 98 ? '#107c10' : '#d13438';
+                        },
+                        pointBorderColor: function(context) {
+                            return context.parsed.y >= 98 ? '#107c10' : '#d13438';
+                        },
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 96,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    },
+                    plugins: [{
+                        id: 'targetLine',
+                        beforeDraw: function(chart) {
+                            const ctx = chart.ctx;
+                            const chartArea = chart.chartArea;
+                            const yScale = chart.scales.y;
+                            const targetY = yScale.getPixelForValue(98);
+                            
+                            ctx.save();
+                            ctx.strokeStyle = '#d13438';
+                            ctx.lineWidth = 2;
+                            ctx.setLineDash([8, 4]);
+                            ctx.beginPath();
+                            ctx.moveTo(chartArea.left, targetY);
+                            ctx.lineTo(chartArea.right, targetY);
+                            ctx.stroke();
+                            ctx.restore();
+                        }
+                    }]
+                }
+            });
+
+            // Faults by Day Line Chart
+            const faultCtx = document.getElementById('faultChart').getContext('2d');
+            faultChart = new Chart(faultCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Aug 1', 'Aug 5', 'Aug 9', 'Aug 13', 'Aug 17', 'Aug 21', 'Aug 25', 'Aug 29'],
+                    datasets: [{
+                        label: 'New Faults',
+                        data: [2, 5, 1, 3, 0, 4, 1, 2],
+                        borderColor: '#d13438',
+                        backgroundColor: 'rgba(209, 52, 56, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.3,
+                        pointBackgroundColor: '#d13438',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 6,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update charts based on filter selection
+        function updateCharts() {
+            const assetFilter = document.getElementById('assetFilter').value;
+            const monthFilter = document.getElementById('monthFilter').value;
+            
+            // Update data based on filters
+            if (assetFilter) {
+                // Filter data for specific asset
+                updateAssetSpecificData(assetFilter);
+            } else {
+                // Show all assets data
+                updateAllAssetsData();
+            }
+            
+            // Update month data
+            updateMonthData(monthFilter);
+        }
+
+        function updateAssetSpecificData(asset) {
+            // This would update charts to show data for specific asset
+            console.log('Filtering for asset:', asset);
+        }
+
+        function updateAllAssetsData() {
+            // This would reset to show all assets
+            console.log('Showing all assets');
+        }
+
+        function updateMonthData(month) {
+            // This would update charts for different months
+            console.log('Filtering for month:', month);
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initCharts();
+        });
+    </script>
+</body>
+</html>
